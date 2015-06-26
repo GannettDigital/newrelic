@@ -23,7 +23,8 @@ type Plugin struct {
 	Verbose      bool
 	Components   []*Component
 
-	agent model.Agent
+	agent        model.Agent
+	lastPollTime int64
 }
 
 func NewPlugin(name, license string, verbose bool) *Plugin {
@@ -44,26 +45,41 @@ func NewPlugin(name, license string, verbose bool) *Plugin {
 	return result
 }
 
+// func generateRequest(p *Plugin) (request model.Request, err error) {
+// 	request.Agent = p.agent
+
+// 	return request, nil
+// }
+
 func (p *Plugin) AppendComponent(c *Component) {
 	p.Components = append(p.Components, c)
 }
 
+// Component encapsulates a component of a plugin
 type Component struct {
 	Name string
 
 	guid     string
 	duration int
-	metrics  map[string]MetricsGroup
+	metrics  []metricsGroup
+}
+
+func (c *Component) AddMetric(metric Metric) {
+	c.metrics = append(c.metrics, simpleMetricsGroup{metric: metric})
 }
 
 // Metric defines
 type Metric interface {
-	Poll() (float64, error)
 	Name() string
 	Units() string
+	Poll() (float64, error)
 }
 
-type MetricsGroup interface {
+type metricsGroup interface {
+}
+
+type simpleMetricsGroup struct {
+	metric Metric
 }
 
 type metric struct {
