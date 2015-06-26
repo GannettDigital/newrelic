@@ -85,3 +85,21 @@ type simpleMetricsGroup struct {
 type metric struct {
 	state model.MetricValue
 }
+
+func NewMetric(name, units string, pollFn func() (float64, error)) Metric {
+	return &simpleMetric{
+		name:  name,
+		units: units,
+		poll:  pollFn,
+	}
+}
+
+type simpleMetric struct {
+	name  string
+	units string
+	poll  func() (float64, error)
+}
+
+func (sm *simpleMetric) Name() string           { return sm.name }
+func (sm *simpleMetric) Units() string          { return sm.units }
+func (sm *simpleMetric) Poll() (float64, error) { return sm.poll() }
