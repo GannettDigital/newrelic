@@ -21,7 +21,7 @@ type Plugin struct {
 	License      string
 	PollInterval int
 	Verbose      bool
-	Components   []Component
+	Components   []*Component
 
 	agent model.Agent
 }
@@ -44,18 +44,28 @@ func NewPlugin(name, license string, verbose bool) *Plugin {
 	return result
 }
 
+func (p *Plugin) AppendComponent(c *Component) {
+	p.Components = append(p.Components, c)
+}
+
 type Component struct {
 	Name string
 
 	guid     string
 	duration int
-	metrics  map[string]Metric
+	metrics  map[string]MetricsGroup
 }
 
+// Metric defines
 type Metric interface {
-	Poll() float64
+	Poll() (float64, error)
+	Name() string
+	Units() string
 }
 
-// type metric struct {
-// 	state model.MetricValue
-// }
+type MetricsGroup interface {
+}
+
+type metric struct {
+	state model.MetricValue
+}
