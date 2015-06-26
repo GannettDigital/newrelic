@@ -1,4 +1,4 @@
-package newrelic
+package model
 
 // Request is the container that holds a JSON request
 type Request struct {
@@ -10,7 +10,7 @@ type Request struct {
 type Agent struct {
 	Host    string `json:"host"`
 	Version string `json:"version"`
-	Pid     int    `json:"pid"`
+	PID     int    `json:"pid"`
 }
 
 // ComponentSnapshot encapsulates the current, unset state of a component
@@ -18,7 +18,7 @@ type ComponentSnapshot struct {
 	Name        string                 `json:"name"`
 	GUID        string                 `json:"guid"`
 	DurationSec int                    `json:"duration"`
-	Metrics     map[string]MetricValue `json:"metrics"`
+	Metrics     map[string]interface{} `json:"metrics"`
 }
 
 type MetricValue struct {
