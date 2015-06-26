@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"os"
+	"time"
 
 	"github.com/neocortical/newrelic/model"
 )
@@ -18,18 +19,20 @@ const (
 
 type Plugin struct {
 	Name         string
+	Company      string
 	License      string
 	PollInterval int
 	Verbose      bool
 	Components   []*Component
 
 	agent        model.Agent
-	lastPollTime int64
+	lastPollTime time.Time
 }
 
-func NewPlugin(name, license string, verbose bool) *Plugin {
+func NewPlugin(name, company, license string, verbose bool) *Plugin {
 	result := &Plugin{
 		Name:         name,
+		Company:      company,
 		License:      license,
 		PollInterval: DefaultPollInterval,
 		Verbose:      verbose,
@@ -45,12 +48,6 @@ func NewPlugin(name, license string, verbose bool) *Plugin {
 	return result
 }
 
-// func generateRequest(p *Plugin) (request model.Request, err error) {
-// 	request.Agent = p.agent
-
-// 	return request, nil
-// }
-
 func (p *Plugin) AppendComponent(c *Component) {
 	p.Components = append(p.Components, c)
 }
@@ -65,41 +62,49 @@ type Component struct {
 }
 
 func (c *Component) AddMetric(metric Metric) {
-	c.metrics = append(c.metrics, simpleMetricsGroup{metric: metric})
+	c.metrics = append(c.metrics, &simpleMetricsGroup{metric: metric})
 }
 
-// Metric defines
-type Metric interface {
-	Name() string
-	Units() string
-	Poll() (float64, error)
-}
+func generateRequest(p *Plugin, t time.Time) (request model.Request, err error) {
+	request.Agent = p.agent
 
-type metricsGroup interface {
-}
-
-type simpleMetricsGroup struct {
-	metric Metric
-}
-
-type metric struct {
-	state model.MetricValue
-}
-
-func NewMetric(name, units string, pollFn func() (float64, error)) Metric {
-	return &simpleMetric{
-		name:  name,
-		units: units,
-		poll:  pollFn,
+	var duration int
+	if p.lastPollTime.IsZero() {
+		duration = p.PollInterval
+	} else {
+		duration = int(t.Sub(p.lastPollTime).Seconds())
 	}
+
+	for _, component := range p.Components {
+		componentRequest, cerr := generateComponentSnapshot(component, duration)
+
+		// we are tolerant of request generation errors and should be able to recover
+		if cerr != nil {
+			err = accumulateErrors(err, cerr)
+		}
+		request.Components = append(request.Components, componentRequest)
+	}
+
+	return request, err
 }
 
-type simpleMetric struct {
-	name  string
-	units string
-	poll  func() (float64, error)
-}
+func generateComponentSnapshot(component *Component, duration int) (result model.ComponentSnapshot, err error) {
+	result.Name = component.Name
+	result.GUID = component.guid
+	result.DurationSec = component.duration + duration
+	result.Metrics = make(map[string]interface{})
 
-func (sm *simpleMetric) Name() string           { return sm.name }
-func (sm *simpleMetric) Units() string          { return sm.units }
-func (sm *simpleMetric) Poll() (float64, error) { return sm.poll() }
+	for _, metricsGroup := range component.metrics {
+		values, cerr := metricsGroup.generateMetricsSnapshots()
+
+		// we are tolerant of request generation errors and should be able to recover
+		if cerr != nil {
+			err = accumulateErrors(err, cerr)
+		}
+		for key, value := range values {
+			result.Metrics[key] = value
+		}
+	}
+
+	return result, nil
+}
