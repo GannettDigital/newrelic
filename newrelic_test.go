@@ -9,11 +9,10 @@ import (
 )
 
 func Test_NewPlugin(t *testing.T) {
-	plugin := NewPlugin("foo", "bar", "baz", true)
+	plugin := NewPlugin("foo", "bar", "baz")
 
 	assert.Equal(t, "foo", plugin.Name)
 	assert.Equal(t, "baz", plugin.License)
-	assert.True(t, plugin.Verbose)
 
 	assert.Equal(t, agentVersion, plugin.agent.Version)
 	assert.Equal(t, os.Getpid(), plugin.agent.PID)
@@ -23,7 +22,7 @@ func Test_NewPlugin(t *testing.T) {
 }
 
 func Test_AppendComponent(t *testing.T) {
-	plugin := NewPlugin("foo", "bar", "baz", true)
+	plugin := NewPlugin("foo", "bar", "baz")
 
 	assert.Equal(t, 0, len(plugin.Components))
 
