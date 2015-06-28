@@ -16,6 +16,9 @@ import (
 // Logger is the logger used by this package. Set to a custom logger if needed.
 var Logger = log.New(os.Stderr, "", log.LstdFlags)
 
+// Verbose can be set globally to produce verbose log messages
+var Verbose bool
+
 var guidNormalizationRegexp = regexp.MustCompile(`[^a-zA-Z0-9\._]+`)
 
 const (
@@ -31,7 +34,6 @@ const (
 
 type Plugin struct {
 	Name         string
-	Company      string
 	License      string
 	PollInterval int
 	Components   []*Component
@@ -43,14 +45,13 @@ type Plugin struct {
 }
 
 func (p *Plugin) AppendComponent(c *Component) {
-	c.guid = generateComponentGUID(p.Company, p.Name, c.Name)
+	c.guid = generateComponentGUID(agentGUID, p.Name)
 	p.Components = append(p.Components, c)
 }
 
-func NewPlugin(name, company, license string) *Plugin {
+func NewPlugin(name, license string) *Plugin {
 	result := &Plugin{
 		Name:         name,
-		Company:      company,
 		License:      license,
 		PollInterval: DefaultPollInterval,
 		url:          apiEndpoint,
@@ -138,13 +139,23 @@ func (p *Plugin) run() {
 }
 
 func doPost(request model.Request, url, license string, client *http.Client) int {
-	json, err := json.Marshal(request)
+	var jsonBytes []byte
+	var err error
+	if Verbose {
+		jsonBytes, err = json.MarshalIndent(request, "", "   ")
+	} else {
+		jsonBytes, err = json.Marshal(request)
+	}
 	if err != nil {
 		Logger.Printf("error encoding json request: %v", err)
 		return http.StatusBadRequest
 	}
 
-	httpRequest, err := http.NewRequest("POST", url, strings.NewReader(string(json)))
+	if Verbose {
+		Logger.Printf("Posting request:\n%s", string(jsonBytes))
+	}
+
+	httpRequest, err := http.NewRequest("POST", url, strings.NewReader(string(jsonBytes)))
 	if err != nil {
 		Logger.Printf("error creating request: %v", err)
 		return http.StatusBadRequest
@@ -177,6 +188,8 @@ func (p *Plugin) generateRequest(t time.Time) (request model.Request, err error)
 		duration = int(t.Sub(p.lastPollTime).Seconds())
 	}
 
+	p.lastPollTime = t
+
 	for _, component := range p.Components {
 		componentRequest, cerr := component.generateComponentSnapshot(duration)
 
@@ -191,9 +204,10 @@ func (p *Plugin) generateRequest(t time.Time) (request model.Request, err error)
 }
 
 func (c *Component) generateComponentSnapshot(duration int) (result model.ComponentSnapshot, err error) {
+	c.duration += duration
 	result.Name = c.Name
 	result.GUID = c.guid
-	result.DurationSec = c.duration + duration
+	result.DurationSec = c.duration
 	result.Metrics = make(map[string]interface{})
 
 	for _, metricsGroup := range c.metrics {
@@ -218,23 +232,10 @@ func (c *Component) clearState() {
 	}
 }
 
-func generateComponentGUID(company, plugin, component string) string {
+func generateComponentGUID(name, plugin string) string {
 	var buf bytes.Buffer
-	buf.WriteString(normalizeGUID(company))
+	buf.WriteString(name)
 	buf.WriteRune('.')
-	buf.WriteString(normalizeGUID(plugin))
-	buf.WriteRune('.')
-	buf.WriteString(normalizeGUID(component))
+	buf.WriteString(plugin)
 	return buf.String()
-}
-
-func normalizeGUID(input string) string {
-	input = strings.ToLower(input)
-	input = strings.TrimSpace(input)
-	input = guidNormalizationRegexp.ReplaceAllString(input, "_")
-	input = strings.Trim(input, "_")
-	if input == "" {
-		return "empty"
-	}
-	return input
 }
