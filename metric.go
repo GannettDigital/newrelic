@@ -17,6 +17,7 @@ type Metric interface {
 
 type metricsGroup interface {
 	generateMetricsSnapshots() (map[string]interface{}, error)
+	clearState()
 }
 
 type simpleMetricsGroup struct {
@@ -38,6 +39,10 @@ func (mg *simpleMetricsGroup) generateMetricsSnapshots() (result map[string]inte
 	}
 
 	return result, err
+}
+
+func (mg *simpleMetricsGroup) clearState() {
+	mg.state = model.MetricValue{}
 }
 
 type metric struct {

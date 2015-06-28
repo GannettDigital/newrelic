@@ -16,7 +16,7 @@ import (
 // Logger is the logger used by this package. Set to a custom logger if needed.
 var Logger = log.New(os.Stderr, "", log.LstdFlags)
 
-var guidNormalizationRegexp = regexp.MustCompile(`[^a-zA-Z0-9\._]`)
+var guidNormalizationRegexp = regexp.MustCompile(`[^a-zA-Z0-9\._]+`)
 
 const (
 	// DefaultPollInterval is the recommended poll interval for NewRelic plugins
@@ -42,6 +42,11 @@ type Plugin struct {
 	client       *http.Client
 }
 
+func (p *Plugin) AppendComponent(c *Component) {
+	c.guid = generateComponentGUID(p.Company, p.Name, c.Name)
+	p.Components = append(p.Components, c)
+}
+
 func NewPlugin(name, company, license string) *Plugin {
 	result := &Plugin{
 		Name:         name,
@@ -60,11 +65,6 @@ func NewPlugin(name, company, license string) *Plugin {
 	}
 
 	return result
-}
-
-func (p *Plugin) AppendComponent(c *Component) {
-	c.guid = generateComponentGUID(p.Company, p.Name, c.Name)
-	p.Components = append(p.Components, c)
 }
 
 // Component encapsulates a component of a plugin
@@ -114,7 +114,9 @@ func (p *Plugin) doSend() bool {
 }
 
 func (p *Plugin) clearState() {
-
+	for _, c := range p.Components {
+		c.clearState()
+	}
 }
 
 func (p *Plugin) Run() {
@@ -209,6 +211,13 @@ func (c *Component) generateComponentSnapshot(duration int) (result model.Compon
 	return result, nil
 }
 
+func (c *Component) clearState() {
+	c.duration = 0
+	for _, mg := range c.metrics {
+		mg.clearState()
+	}
+}
+
 func generateComponentGUID(company, plugin, component string) string {
 	var buf bytes.Buffer
 	buf.WriteString(normalizeGUID(company))
@@ -220,5 +229,12 @@ func generateComponentGUID(company, plugin, component string) string {
 }
 
 func normalizeGUID(input string) string {
-	return guidNormalizationRegexp.ReplaceAllString(input, "_")
+	input = strings.ToLower(input)
+	input = strings.TrimSpace(input)
+	input = guidNormalizationRegexp.ReplaceAllString(input, "_")
+	input = strings.Trim(input, "_")
+	if input == "" {
+		return "empty"
+	}
+	return input
 }
