@@ -9,10 +9,10 @@ import (
 )
 
 func Test_NewPlugin(t *testing.T) {
-	plugin := NewPlugin("foo", "bar", "baz")
+	plugin := NewPlugin("foo", "bar")
 
 	assert.Equal(t, "foo", plugin.Name)
-	assert.Equal(t, "baz", plugin.License)
+	assert.Equal(t, "bar", plugin.License)
 
 	assert.Equal(t, agentVersion, plugin.agent.Version)
 	assert.Equal(t, os.Getpid(), plugin.agent.PID)
@@ -22,7 +22,7 @@ func Test_NewPlugin(t *testing.T) {
 }
 
 func Test_AppendComponent(t *testing.T) {
-	plugin := NewPlugin("foo", "bar", "baz")
+	plugin := NewPlugin("foo", "bar")
 
 	assert.Equal(t, 0, len(plugin.Components))
 
@@ -66,20 +66,4 @@ func Test_AddMetric(t *testing.T) {
 	c.AddMetric(m)
 	assert.Equal(t, 1, len(c.metrics))
 	assert.Equal(t, "bar", c.metrics[0].(*simpleMetricsGroup).metric.Name())
-}
-
-func Test_normalizeGUID(t *testing.T) {
-	guid := normalizeGUID(`  This.Is @ Weird input #345 (parens) /[brackets]/ {braces}   	`)
-	assert.Equal(t, "this.is_weird_input_345_parens_brackets_braces", guid)
-
-	guid = normalizeGUID(`  {}[]!@#$%$$ &&*()   	`)
-	assert.Equal(t, "empty", guid)
-}
-
-func Test_generateComponentGUID(t *testing.T) {
-	guid := generateComponentGUID("net.neocortical", "my_plugin", "my_component")
-	assert.Equal(t, "net.neocortical.my_plugin.my_component", guid)
-
-	guid = generateComponentGUID("my crazy domain", " [ MY PLUGIN ] ", "*** my component ***")
-	assert.Equal(t, "my_crazy_domain.my_plugin.my_component", guid)
 }

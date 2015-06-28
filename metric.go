@@ -50,6 +50,7 @@ type metric struct {
 	metric Metric
 }
 
+// NewMetric creates a new metric definition using a closure
 func NewMetric(name, units string, pollFn func() (float64, error)) Metric {
 	return &simpleMetric{
 		name:  name,
