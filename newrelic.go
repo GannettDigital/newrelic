@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -17,8 +16,6 @@ var Logger = log.New(os.Stderr, "", log.LstdFlags)
 
 // Verbose can be set globally to produce verbose log messages
 var Verbose bool
-
-var guidNormalizationRegexp = regexp.MustCompile(`[^a-zA-Z0-9\._]+`)
 
 const (
 	// DefaultPollInterval is the recommended poll interval for NewRelic plugins
