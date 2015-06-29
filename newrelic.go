@@ -1,7 +1,6 @@
 package newrelic
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -43,7 +42,7 @@ type Client struct {
 	client       *http.Client
 }
 
-func (c *Client) AppendPlugin(p *Plugin) {
+func (c *Client) AddPlugin(p *Plugin) {
 	c.Plugins = append(c.Plugins, p)
 }
 
@@ -65,8 +64,7 @@ func New(license string) *Client {
 	return result
 }
 
-func (c *Client) doSend() bool {
-	t := time.Now()
+func (c *Client) doSend(t time.Time) bool {
 	request, err := c.generateRequest(t)
 	if err != nil {
 		Logger.Printf("ERROR: encountered error(s) creating request data: %v", err)
@@ -75,7 +73,7 @@ func (c *Client) doSend() bool {
 	responseCode := doPost(request, c.url, c.License, c.client)
 	switch responseCode {
 	case http.StatusOK:
-		c.clearState()
+		c.clearState(t)
 	case http.StatusBadRequest:
 		logResponseError(responseCode)
 	case http.StatusForbidden:
@@ -98,7 +96,8 @@ func (c *Client) doSend() bool {
 	return false
 }
 
-func (c *Client) clearState() {
+func (c *Client) clearState(t time.Time) {
+	c.lastPollTime = t
 	for _, p := range c.Plugins {
 		p.clearState()
 	}
@@ -114,8 +113,8 @@ func (c *Client) Run() {
 func (c *Client) run() {
 	var fatal bool
 	ticks := time.Tick(time.Duration(c.PollInterval))
-	for _ = range ticks {
-		fatal = c.doSend()
+	for t := range ticks {
+		fatal = c.doSend(t)
 
 		if fatal {
 			Logger.Printf("ERROR: NewRelic plugin encountered a fatal error and is shutting down.")
@@ -171,10 +170,8 @@ func (c *Client) generateRequest(t time.Time) (request model.Request, err error)
 	if c.lastPollTime.IsZero() {
 		duration = c.PollInterval
 	} else {
-		duration = time.Duration(t.Sub(c.lastPollTime).Seconds())
+		duration = t.Sub(c.lastPollTime)
 	}
-
-	c.lastPollTime = t
 
 	for _, p := range c.Plugins {
 		pluginSnapshot, cerr := p.generatePluginSnapshot(duration)
@@ -187,12 +184,4 @@ func (c *Client) generateRequest(t time.Time) (request model.Request, err error)
 	}
 
 	return request, err
-}
-
-func generatePluginGUID(name, plugin string) string {
-	var buf bytes.Buffer
-	buf.WriteString(name)
-	buf.WriteRune('.')
-	buf.WriteString(plugin)
-	return buf.String()
 }

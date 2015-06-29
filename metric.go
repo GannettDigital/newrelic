@@ -15,11 +15,6 @@ type Metric interface {
 	Poll() (float64, error)
 }
 
-// type metric interface {
-// 	generateMetricSnapshot() (interface{}, error)
-// 	clearState()
-// }
-
 type statefulMetric struct {
 	metric Metric
 	state  model.MetricValue
@@ -86,7 +81,7 @@ func updateState(state model.MetricValue, val float64) model.MetricValue {
 
 func generateMetricKey(m Metric) string {
 	var buf bytes.Buffer
-	buf.WriteString("Plugin/")
+	buf.WriteString("Component/")
 	buf.WriteString(m.Name())
 	buf.WriteRune('[')
 	buf.WriteString(m.Units())
