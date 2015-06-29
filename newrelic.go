@@ -23,7 +23,7 @@ var guidNormalizationRegexp = regexp.MustCompile(`[^a-zA-Z0-9\._]+`)
 
 const (
 	// DefaultPollInterval is the recommended poll interval for NewRelic plugins
-	DefaultPollInterval = 60
+	DefaultPollInterval = time.Second * 60
 )
 
 const (
@@ -35,7 +35,7 @@ const (
 type Plugin struct {
 	Name         string
 	License      string
-	PollInterval int
+	PollInterval time.Duration
 	Components   []*Component
 
 	agent        model.Agent
@@ -114,7 +114,7 @@ func (p *Plugin) Run() {
 
 func (p *Plugin) run() {
 	var fatal bool
-	ticks := time.Tick(time.Duration(p.PollInterval) * time.Second)
+	ticks := time.Tick(time.Duration(p.PollInterval))
 	for _ = range ticks {
 		fatal = p.doSend()
 
@@ -168,11 +168,11 @@ func logResponseError(responseCode int) {
 func (p *Plugin) generateRequest(t time.Time) (request model.Request, err error) {
 	request.Agent = p.agent
 
-	var duration int
+	var duration time.Duration
 	if p.lastPollTime.IsZero() {
 		duration = p.PollInterval
 	} else {
-		duration = int(t.Sub(p.lastPollTime).Seconds())
+		duration = time.Duration(t.Sub(p.lastPollTime).Seconds())
 	}
 
 	p.lastPollTime = t

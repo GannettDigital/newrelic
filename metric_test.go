@@ -62,12 +62,10 @@ func Test_updateState(t *testing.T) {
 
 func Test_simpleMetricsGroup_generateMetricsSnapshots_error(t *testing.T) {
 	m := NewMetric("foo", "barns/cowboy", func() (float64, error) { return 1.0, errors.New("duh-hoy") })
-	mg := &simpleMetricsGroup{metric: m, state: model.MetricValue{}}
+	sm := &statefulMetric{metric: m, state: model.MetricValue{}}
 
-	result, err := mg.generateMetricsSnapshots()
+	_, err := sm.generateMetricSnapshot()
 	assert.NotNil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, 0, len(result))
 }
 
 func Test_simpleMetricsGroup_generateMetricsSnapshots(t *testing.T) {
@@ -76,29 +74,21 @@ func Test_simpleMetricsGroup_generateMetricsSnapshots(t *testing.T) {
 		i++
 		return i, nil
 	})
-	mg := &simpleMetricsGroup{metric: m, state: model.MetricValue{}}
+	sm := &statefulMetric{metric: m, state: model.MetricValue{}}
 
 	// first pass
-	result, err := mg.generateMetricsSnapshots()
+	result, err := sm.generateMetricSnapshot()
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, 1, len(result))
-	key := generateMetricKey(m)
-	val, ok := result[key]
-	assert.True(t, ok)
-	floatVal, ok := val.(float64)
+	floatVal, ok := result.(float64)
 	assert.True(t, ok)
 	assert.Equal(t, 1.0, floatVal)
 
 	// second pass (returns aggregated value)
-	result, err = mg.generateMetricsSnapshots()
+	result, err = sm.generateMetricSnapshot()
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, 1, len(result))
-	key = generateMetricKey(m)
-	val, ok = result[key]
-	assert.True(t, ok)
-	aggVal, ok := val.(model.MetricValue)
+	aggVal, ok := result.(model.MetricValue)
 	assert.True(t, ok)
 	assert.Equal(t, model.MetricValue{Min: 1.0, Max: 2.0, Total: 3.0, Count: 2, SumOfSquares: 5.0}, aggVal)
 }

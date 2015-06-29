@@ -1,38 +1,43 @@
 package newrelic
 
-import "github.com/neocortical/newrelic/model"
+import (
+	"time"
+
+	"github.com/neocortical/newrelic/model"
+)
 
 // Component encapsulates a component of a plugin
 type Component struct {
 	Name string
 
 	guid     string
-	duration int
-	metrics  []metricsGroup
+	duration time.Duration
+	metrics  map[string]*statefulMetric
 }
 
 // AddMetric adds a new metric definition to the component
 func (c *Component) AddMetric(metric Metric) {
-	c.metrics = append(c.metrics, &simpleMetricsGroup{metric: metric})
+	if c.metrics == nil {
+		c.metrics = make(map[string]*statefulMetric)
+	}
+	c.metrics[generateMetricKey(metric)] = &statefulMetric{metric: metric}
 }
 
-func (c *Component) generateComponentSnapshot(duration int) (result model.ComponentSnapshot, err error) {
+func (c *Component) generateComponentSnapshot(duration time.Duration) (result model.ComponentSnapshot, err error) {
 	c.duration += duration
 	result.Name = c.Name
 	result.GUID = c.guid
-	result.DurationSec = c.duration
+	result.DurationSec = int(c.duration / time.Second)
 	result.Metrics = make(map[string]interface{})
 
-	for _, metricsGroup := range c.metrics {
-		values, cerr := metricsGroup.generateMetricsSnapshots()
+	for k, m := range c.metrics {
+		value, cerr := m.generateMetricSnapshot()
 
 		// we are tolerant of request generation errors and should be able to recover
 		if cerr != nil {
 			err = accumulateErrors(err, cerr)
 		}
-		for key, value := range values {
-			result.Metrics[key] = value
-		}
+		result.Metrics[k] = value
 	}
 
 	return result, nil
@@ -40,7 +45,7 @@ func (c *Component) generateComponentSnapshot(duration int) (result model.Compon
 
 func (c *Component) clearState() {
 	c.duration = 0
-	for _, mg := range c.metrics {
-		mg.clearState()
+	for _, m := range c.metrics {
+		m.clearState()
 	}
 }
