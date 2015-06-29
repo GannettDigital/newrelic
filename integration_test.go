@@ -7,6 +7,7 @@ package newrelic
 import (
 	"flag"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -14,13 +15,14 @@ import (
 var license = flag.String("license", "", "Valid API license key")
 
 func Test_doSend(t *testing.T) {
-	plugin := NewPlugin("Integration Test Plugin", "net.neocortical", *license)
-	component := &Plugin{
+	client := New(*license)
+	plugin := &Plugin{
 		Name: "Test Plugin",
+		GUID: "com.example.newrelic.test",
 	}
-	component.AddMetric(NewMetric("Test Metric", "rps", func() (float64, error) { return 1.0, nil }))
-	plugin.AppendPlugin(component)
+	plugin.AddMetric(NewMetric("Test Metric", "rps", func() (float64, error) { return 1.0, nil }))
+	client.AddPlugin(plugin)
 
-	result := plugin.doSend()
+	result := client.doSend(time.Now())
 	assert.False(t, result)
 }
