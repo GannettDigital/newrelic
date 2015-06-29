@@ -16,7 +16,7 @@ func Test_generateMetricKey(t *testing.T) {
 	}
 
 	key := generateMetricKey(m)
-	assert.Equal(t, "Plugin/foo[bars/baz]", key)
+	assert.Equal(t, "Component/foo[bars/baz]", key)
 }
 
 func Test_NewMetric(t *testing.T) {
@@ -27,6 +27,24 @@ func Test_NewMetric(t *testing.T) {
 	assert.Equal(t, "barns/cowboy", m.Units())
 	val, _ := m.(*simpleMetric).poll()
 	assert.Equal(t, 3.14, val)
+}
+
+func Test_NewMetric_returnsErrors(t *testing.T) {
+	i := 0.0
+	m := NewMetric("foo", "yards/wombat", func() (float64, error) {
+		i++
+		if i == 1.0 {
+			return i, nil
+		}
+		return i, errors.New("i is not 1")
+	})
+
+	val, err := m.Poll()
+	assert.Nil(t, err)
+	assert.Equal(t, 1.0, val)
+
+	val, err = m.Poll()
+	assert.NotNil(t, err)
 }
 
 func Test_updateState(t *testing.T) {

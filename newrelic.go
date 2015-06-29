@@ -26,7 +26,6 @@ const (
 )
 
 const (
-	agentGUID    = "net.neocortical.newrelic"
 	agentVersion = "0.0.1"
 	apiEndpoint  = "https://platform-api.newrelic.com/platform/v1/metrics"
 )
