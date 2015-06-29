@@ -16,7 +16,7 @@ func Test_generateMetricKey(t *testing.T) {
 	}
 
 	key := generateMetricKey(m)
-	assert.Equal(t, "Component/foo[bars/baz]", key)
+	assert.Equal(t, "Plugin/foo[bars/baz]", key)
 }
 
 func Test_NewMetric(t *testing.T) {

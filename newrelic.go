@@ -32,11 +32,10 @@ const (
 	apiEndpoint  = "https://platform-api.newrelic.com/platform/v1/metrics"
 )
 
-type Plugin struct {
-	Name         string
+type Client struct {
 	License      string
 	PollInterval time.Duration
-	Components   []*Component
+	Plugins      []*Plugin
 
 	agent        model.Agent
 	lastPollTime time.Time
@@ -44,14 +43,12 @@ type Plugin struct {
 	client       *http.Client
 }
 
-func (p *Plugin) AppendComponent(c *Component) {
-	c.guid = generateComponentGUID(agentGUID, p.Name)
-	p.Components = append(p.Components, c)
+func (c *Client) AppendPlugin(p *Plugin) {
+	c.Plugins = append(c.Plugins, p)
 }
 
-func NewPlugin(name, license string) *Plugin {
-	result := &Plugin{
-		Name:         name,
+func New(license string) *Client {
+	result := &Client{
 		License:      license,
 		PollInterval: DefaultPollInterval,
 		url:          apiEndpoint,
@@ -68,17 +65,17 @@ func NewPlugin(name, license string) *Plugin {
 	return result
 }
 
-func (p *Plugin) doSend() bool {
+func (c *Client) doSend() bool {
 	t := time.Now()
-	request, err := p.generateRequest(t)
+	request, err := c.generateRequest(t)
 	if err != nil {
 		Logger.Printf("ERROR: encountered error(s) creating request data: %v", err)
 	}
 
-	responseCode := doPost(request, p.url, p.License, p.client)
+	responseCode := doPost(request, c.url, c.License, c.client)
 	switch responseCode {
 	case http.StatusOK:
-		p.clearState()
+		c.clearState()
 	case http.StatusBadRequest:
 		logResponseError(responseCode)
 	case http.StatusForbidden:
@@ -101,25 +98,27 @@ func (p *Plugin) doSend() bool {
 	return false
 }
 
-func (p *Plugin) clearState() {
-	for _, c := range p.Components {
-		c.clearState()
+func (c *Client) clearState() {
+	for _, p := range c.Plugins {
+		p.clearState()
 	}
 }
 
-func (p *Plugin) Run() {
-	Logger.Printf("Starting NewRelic plugin client %s...", p.Name)
-	go p.run()
+func (c *Client) Run() {
+	if Verbose {
+		Logger.Printf("Starting NewRelic plugin client...")
+	}
+	go c.run()
 }
 
-func (p *Plugin) run() {
+func (c *Client) run() {
 	var fatal bool
-	ticks := time.Tick(time.Duration(p.PollInterval))
+	ticks := time.Tick(time.Duration(c.PollInterval))
 	for _ = range ticks {
-		fatal = p.doSend()
+		fatal = c.doSend()
 
 		if fatal {
-			Logger.Printf("ERROR: NewRelic plugin %s encountered a fatal error and is shutting down.", p.Name)
+			Logger.Printf("ERROR: NewRelic plugin encountered a fatal error and is shutting down.")
 			return
 		}
 	}
@@ -165,32 +164,32 @@ func logResponseError(responseCode int) {
 	Logger.Printf("ERROR: newrelic encountered %d response", responseCode)
 }
 
-func (p *Plugin) generateRequest(t time.Time) (request model.Request, err error) {
-	request.Agent = p.agent
+func (c *Client) generateRequest(t time.Time) (request model.Request, err error) {
+	request.Agent = c.agent
 
 	var duration time.Duration
-	if p.lastPollTime.IsZero() {
-		duration = p.PollInterval
+	if c.lastPollTime.IsZero() {
+		duration = c.PollInterval
 	} else {
-		duration = time.Duration(t.Sub(p.lastPollTime).Seconds())
+		duration = time.Duration(t.Sub(c.lastPollTime).Seconds())
 	}
 
-	p.lastPollTime = t
+	c.lastPollTime = t
 
-	for _, component := range p.Components {
-		componentRequest, cerr := component.generateComponentSnapshot(duration)
+	for _, p := range c.Plugins {
+		pluginSnapshot, cerr := p.generatePluginSnapshot(duration)
 
 		// we are tolerant of request generation errors and should be able to recover
 		if cerr != nil {
 			err = accumulateErrors(err, cerr)
 		}
-		request.Components = append(request.Components, componentRequest)
+		request.Plugins = append(request.Plugins, pluginSnapshot)
 	}
 
 	return request, err
 }
 
-func generateComponentGUID(name, plugin string) string {
+func generatePluginGUID(name, plugin string) string {
 	var buf bytes.Buffer
 	buf.WriteString(name)
 	buf.WriteRune('.')

@@ -86,7 +86,7 @@ func updateState(state model.MetricValue, val float64) model.MetricValue {
 
 func generateMetricKey(m Metric) string {
 	var buf bytes.Buffer
-	buf.WriteString("Component/")
+	buf.WriteString("Plugin/")
 	buf.WriteString(m.Name())
 	buf.WriteRune('[')
 	buf.WriteString(m.Units())

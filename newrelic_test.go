@@ -9,30 +9,31 @@ import (
 )
 
 func Test_NewPlugin(t *testing.T) {
-	plugin := NewPlugin("foo", "bar")
+	client := New("abc123")
 
-	assert.Equal(t, "foo", plugin.Name)
-	assert.Equal(t, "bar", plugin.License)
+	assert.Equal(t, "abc123", client.License)
 
-	assert.Equal(t, agentVersion, plugin.agent.Version)
-	assert.Equal(t, os.Getpid(), plugin.agent.PID)
+	assert.Equal(t, agentVersion, client.agent.Version)
+	assert.Equal(t, os.Getpid(), client.agent.PID)
 	host, err := os.Hostname()
 	assert.Nil(t, err) // sanity
-	assert.Equal(t, host, plugin.agent.Host)
+	assert.Equal(t, host, client.agent.Host)
 }
 
-func Test_AppendComponent(t *testing.T) {
-	plugin := NewPlugin("foo", "bar")
+func Test_AppendPlugin(t *testing.T) {
+	client := New("abc123")
 
-	assert.Equal(t, 0, len(plugin.Components))
+	assert.Equal(t, 0, len(client.Plugins))
 
-	plugin.AppendComponent(&Component{Name: "foo"})
-	assert.Equal(t, 1, len(plugin.Components))
+	client.AppendPlugin(&Plugin{Name: "foo", GUID: "com.example.foo"})
+	assert.Equal(t, 1, len(client.Plugins))
 
-	plugin.AppendComponent(&Component{Name: "bar"})
-	assert.Equal(t, 2, len(plugin.Components))
-	assert.Equal(t, "foo", plugin.Components[0].Name)
-	assert.Equal(t, "bar", plugin.Components[1].Name)
+	client.AppendPlugin(&Plugin{Name: "bar", GUID: "com.example.bar"})
+	assert.Equal(t, 2, len(client.Plugins))
+	assert.Equal(t, "foo", client.Plugins[0].Name)
+	assert.Equal(t, "com.example.foo", client.Plugins[0].GUID)
+	assert.Equal(t, "bar", client.Plugins[1].Name)
+	assert.Equal(t, "com.example.bar", client.Plugins[1].GUID)
 }
 
 func Test_NewMetrict(t *testing.T) {
@@ -57,7 +58,7 @@ func Test_NewMetrict(t *testing.T) {
 }
 
 func Test_AddMetric(t *testing.T) {
-	c := &Component{Name: "foo"}
+	c := &Plugin{Name: "foo"}
 
 	assert.Equal(t, 0, len(c.metrics))
 

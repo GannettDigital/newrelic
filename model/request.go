@@ -2,8 +2,8 @@ package model
 
 // Request is the container that holds a JSON request
 type Request struct {
-	Agent      Agent               `json:"agent"`
-	Components []ComponentSnapshot `json:"components"`
+	Agent   Agent            `json:"agent"`
+	Plugins []PluginSnapshot `json:"components"`
 }
 
 // Agent encapsulates the agent info
@@ -13,8 +13,8 @@ type Agent struct {
 	PID     int    `json:"pid"`
 }
 
-// ComponentSnapshot encapsulates the current, unset state of a component
-type ComponentSnapshot struct {
+// PluginSnapshot encapsulates the current, unset state of a component
+type PluginSnapshot struct {
 	Name        string                 `json:"name"`
 	GUID        string                 `json:"guid"`
 	DurationSec int                    `json:"duration"`
