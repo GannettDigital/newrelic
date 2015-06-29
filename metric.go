@@ -15,31 +15,31 @@ type Metric interface {
 	Poll() (float64, error)
 }
 
-type metric interface {
-	generateMetricSnapshot() (interface{}, error)
-	clearState()
-}
+// type metric interface {
+// 	generateMetricSnapshot() (interface{}, error)
+// 	clearState()
+// }
 
 type statefulMetric struct {
 	metric Metric
 	state  model.MetricValue
 }
 
-func (sg *statefulMetric) generateMetricSnapshot() (result interface{}, err error) {
-	sg.state, err = pollMetric(sg.metric, sg.state)
+func (sm *statefulMetric) generateMetricSnapshot() (result interface{}, err error) {
+	sm.state, err = pollMetric(sm.metric, sm.state)
 	if err == nil {
-		if sg.state.Count == 1 {
-			result = sg.state.Total
+		if sm.state.Count == 1 {
+			result = sm.state.Total
 		} else {
-			result = sg.state
+			result = sm.state
 		}
 	}
 
 	return result, err
 }
 
-func (sg *statefulMetric) clearState() {
-	sg.state = model.MetricValue{}
+func (sm *statefulMetric) clearState() {
+	sm.state = model.MetricValue{}
 }
 
 // NewMetric creates a new metric definition using a closure

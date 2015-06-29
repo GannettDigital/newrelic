@@ -65,5 +65,5 @@ func Test_AddMetric(t *testing.T) {
 
 	c.AddMetric(m)
 	assert.Equal(t, 1, len(c.metrics))
-	assert.Equal(t, "bar", c.metrics["bar"].metric.Name())
+	assert.Equal(t, "bar", c.metrics[generateMetricKey(m)].metric.Name())
 }

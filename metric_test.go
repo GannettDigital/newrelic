@@ -20,12 +20,13 @@ func Test_generateMetricKey(t *testing.T) {
 }
 
 func Test_NewMetric(t *testing.T) {
-	poll := func() (float64, error) { return 1.0, nil }
+	poll := func() (float64, error) { return 3.14, nil }
 
 	m := NewMetric("foo", "barns/cowboy", poll)
 	assert.Equal(t, "foo", m.Name())
 	assert.Equal(t, "barns/cowboy", m.Units())
-	assert.Equal(t, poll, m.(*simpleMetric).poll)
+	val, _ := m.(*simpleMetric).poll()
+	assert.Equal(t, 3.14, val)
 }
 
 func Test_updateState(t *testing.T) {
