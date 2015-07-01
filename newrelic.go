@@ -60,7 +60,7 @@ func New(license string) *Client {
 	return result
 }
 
-func (c *Client) doSend(t time.Time) bool {
+func (c *Client) doSend(t time.Time) {
 	request, err := c.generateRequest(t)
 	if err != nil {
 		Logger.Printf("ERROR: encountered error(s) creating request data: %v", err)
@@ -74,7 +74,6 @@ func (c *Client) doSend(t time.Time) bool {
 		logResponseError(responseCode)
 	case http.StatusForbidden:
 		logResponseError(responseCode)
-		return true
 	case http.StatusNotFound:
 		logResponseError(responseCode)
 	case http.StatusMethodNotAllowed:
@@ -88,8 +87,6 @@ func (c *Client) doSend(t time.Time) bool {
 	case http.StatusServiceUnavailable, http.StatusGatewayTimeout:
 		logResponseError(responseCode)
 	}
-
-	return false
 }
 
 func (c *Client) clearState(t time.Time) {
@@ -107,15 +104,9 @@ func (c *Client) Run() {
 }
 
 func (c *Client) run() {
-	var fatal bool
 	ticks := time.Tick(time.Duration(c.PollInterval))
 	for t := range ticks {
-		fatal = c.doSend(t)
-
-		if fatal {
-			Logger.Printf("ERROR: NewRelic plugin encountered a fatal error and is shutting down.")
-			return
-		}
+		c.doSend(t)
 	}
 }
 

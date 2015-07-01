@@ -34,3 +34,15 @@ func Test_AddPlugin(t *testing.T) {
 	assert.Equal(t, "bar", client.Plugins[1].Name)
 	assert.Equal(t, "com.example.bar", client.Plugins[1].GUID)
 }
+
+func Test_New(t *testing.T) {
+	nr := New("abc123")
+
+	assert.Equal(t, "abc123", nr.License)
+	assert.Equal(t, DefaultPollInterval, nr.PollInterval)
+	assert.Equal(t, apiEndpoint, nr.url)
+	assert.Equal(t, agentVersion, nr.agent.Version)
+	assert.Equal(t, os.Getpid(), nr.agent.PID)
+	host, _ := os.Hostname()
+	assert.Equal(t, host, nr.agent.Host)
+}
