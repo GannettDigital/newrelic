@@ -26,10 +26,12 @@ type Client struct {
 	PollInterval time.Duration
 	Plugins      []*Plugin
 
+	// HTTPClient is exposed to allow users to configure proxies, etc.
+	HTTPClient *http.Client
+
 	agent        model.Agent
 	lastPollTime time.Time
 	url          string
-	client       *http.Client
 }
 
 // AddPlugin appends a plugin to a clients list of plugins. A plugin is a "component"
@@ -43,8 +45,8 @@ func New(license string) *Client {
 	result := &Client{
 		License:      license,
 		PollInterval: DefaultPollInterval,
+		HTTPClient:   &http.Client{},
 		url:          apiEndpoint,
-		client:       &http.Client{},
 	}
 
 	result.agent.Version = agentVersion
@@ -64,7 +66,7 @@ func (c *Client) doSend(t time.Time) {
 	}
 	c.lastPollTime = t
 
-	responseCode := doPost(request, c.url, c.License, c.client)
+	responseCode := doPost(request, c.url, c.License, c.HTTPClient)
 	switch responseCode {
 	case http.StatusOK:
 		c.clearState()

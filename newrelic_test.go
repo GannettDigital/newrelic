@@ -133,7 +133,7 @@ func Test_doSend_lastPollTimeUpdated(t *testing.T) {
 			PID:     123,
 		},
 		lastPollTime: t0,
-		client:       &http.Client{},
+		HTTPClient:   &http.Client{},
 		url:          testSvr.URL,
 	}
 
