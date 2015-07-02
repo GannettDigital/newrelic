@@ -8,7 +8,7 @@ import (
 	"github.com/neocortical/newrelic/model"
 )
 
-// Metric defines
+// Metric describes the interface for a metric
 type Metric interface {
 	Name() string
 	Units() string
