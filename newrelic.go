@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -17,8 +16,6 @@ var Logger = log.New(os.Stderr, "", log.LstdFlags)
 
 // Verbose can be set globally to produce verbose log messages
 var Verbose bool
-
-var guidNormalizationRegexp = regexp.MustCompile(`[^a-zA-Z0-9\._]+`)
 
 const (
 	// DefaultPollInterval is the recommended poll interval for NewRelic plugins
@@ -63,7 +60,7 @@ func New(license string) *Client {
 	return result
 }
 
-func (c *Client) doSend(t time.Time) bool {
+func (c *Client) doSend(t time.Time) {
 	request, err := c.generateRequest(t)
 	if err != nil {
 		Logger.Printf("ERROR: encountered error(s) creating request data: %v", err)
@@ -78,7 +75,6 @@ func (c *Client) doSend(t time.Time) bool {
 		logResponseError(responseCode)
 	case http.StatusForbidden:
 		logResponseError(responseCode)
-		return true
 	case http.StatusNotFound:
 		logResponseError(responseCode)
 	case http.StatusMethodNotAllowed:
@@ -94,8 +90,6 @@ func (c *Client) doSend(t time.Time) bool {
 	case http.StatusTeapot:
 		Logger.Printf("Server is a teapot!")
 	}
-
-	return false
 }
 
 func (c *Client) clearState() {
@@ -112,15 +106,9 @@ func (c *Client) Run() {
 }
 
 func (c *Client) run() {
-	var fatal bool
 	ticks := time.Tick(time.Duration(c.PollInterval))
 	for t := range ticks {
-		fatal = c.doSend(t)
-
-		if fatal {
-			Logger.Printf("ERROR: NewRelic plugin encountered a fatal error and is shutting down.")
-			return
-		}
+		c.doSend(t)
 	}
 }
 
