@@ -2,6 +2,8 @@
 
 newrelic is an embeddable client for implementing custom NewRelic plugins. It is aided and inpired by  [yvasiyarov's](https://github.com/yvasiyarov) [newrelic_platform_go package](https://github.com/yvasiyarov/newrelic_platform_go).
 
+[![Build Status](https://travis-ci.org/neocortical/newrelic.svg?branch=master)](https://travis-ci.org/neocortical/newrelic) [![Coverage](http://gocover.io/_badge/github.com/neocortical/newrelic)](http://gocover.io/github.com/neocortical/newrelic) [![GoDoc](https://godoc.org/github.com/neocortical/newrelic?status.svg)](https://godoc.org/github.com/neocortical/newrelic)
+
 # Installation
 
 ```go
