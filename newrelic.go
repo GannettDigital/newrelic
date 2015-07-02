@@ -68,11 +68,12 @@ func (c *Client) doSend(t time.Time) bool {
 	if err != nil {
 		Logger.Printf("ERROR: encountered error(s) creating request data: %v", err)
 	}
+	c.lastPollTime = t
 
 	responseCode := doPost(request, c.url, c.License, c.client)
 	switch responseCode {
 	case http.StatusOK:
-		c.clearState(t)
+		c.clearState()
 	case http.StatusBadRequest:
 		logResponseError(responseCode)
 	case http.StatusForbidden:
@@ -90,13 +91,14 @@ func (c *Client) doSend(t time.Time) bool {
 		logResponseError(responseCode)
 	case http.StatusServiceUnavailable, http.StatusGatewayTimeout:
 		logResponseError(responseCode)
+	case http.StatusTeapot:
+		Logger.Printf("Server is a teapot!")
 	}
 
 	return false
 }
 
-func (c *Client) clearState(t time.Time) {
-	c.lastPollTime = t
+func (c *Client) clearState() {
 	for _, p := range c.Plugins {
 		p.clearState()
 	}
