@@ -152,7 +152,7 @@ func logResponseError(responseCode int) {
 	Logger.Printf("ERROR: newrelic encountered %d response", responseCode)
 }
 
-func (c *Client) generateRequest(t time.Time) (request model.Request, err error) {
+func (c *Client) generateRequest(t time.Time) (request model.Request, err CompositeError) {
 	request.Agent = c.agent
 
 	var duration time.Duration
@@ -167,7 +167,7 @@ func (c *Client) generateRequest(t time.Time) (request model.Request, err error)
 
 		// we are tolerant of request generation errors and should be able to recover
 		if cerr != nil {
-			err = accumulateErrors(err, cerr)
+			err = err.Accumulate(cerr)
 		}
 		request.Plugins = append(request.Plugins, pluginSnapshot)
 	}

@@ -23,7 +23,7 @@ func (p *Plugin) AddMetric(metric Metric) {
 	p.metrics[generateMetricKey(metric)] = &statefulMetric{metric: metric}
 }
 
-func (p *Plugin) generatePluginSnapshot(duration time.Duration) (result model.PluginSnapshot, err error) {
+func (p *Plugin) generatePluginSnapshot(duration time.Duration) (result model.PluginSnapshot, err CompositeError) {
 	p.duration += duration
 	result.Name = p.Name
 	result.GUID = p.GUID
@@ -33,9 +33,9 @@ func (p *Plugin) generatePluginSnapshot(duration time.Duration) (result model.Pl
 	for k, m := range p.metrics {
 		value, cerr := m.generateMetricSnapshot()
 
-		// we are tolerant of request generation errors and should be able to recover
+		// we are tolerant of request generation errors. metrics that error out are not sent
 		if cerr != nil {
-			err = accumulateErrors(err, cerr)
+			err = err.Accumulate(cerr)
 		}
 		result.Metrics[k] = value
 	}
