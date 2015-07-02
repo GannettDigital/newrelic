@@ -35,5 +35,4 @@ func Test_Accumulate(t *testing.T) {
 	// instantiation edge case
 	ce = CompositeError{}
 	assert.Equal(t, "", ce.Error())
-
 }

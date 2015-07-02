@@ -2,7 +2,6 @@ package newrelic
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -11,15 +10,9 @@ import (
 	"github.com/neocortical/newrelic/model"
 )
 
-// Logger is the logger used by this package. Set to a custom logger if needed.
-var Logger = log.New(os.Stderr, "", log.LstdFlags)
-
-// Verbose can be set globally to produce verbose log messages
-var Verbose bool
-
 const (
 	// DefaultPollInterval is the recommended poll interval for NewRelic plugins
-	DefaultPollInterval = time.Second * 60
+	DefaultPollInterval = time.Minute
 )
 
 const (
@@ -27,6 +20,7 @@ const (
 	apiEndpoint  = "https://platform-api.newrelic.com/platform/v1/metrics"
 )
 
+// Client encapsulates a NewRelic plugin client and all the plugins it reports
 type Client struct {
 	License      string
 	PollInterval time.Duration
@@ -38,10 +32,13 @@ type Client struct {
 	client       *http.Client
 }
 
+// AddPlugin appends a plugin to a clients list of plugins. A plugin is a "component"
+// in the API call and can be configured (with a unique GUID) in the NewRelic UI.
 func (c *Client) AddPlugin(p *Plugin) {
 	c.Plugins = append(c.Plugins, p)
 }
 
+// New creates a new Client with the given license
 func New(license string) *Client {
 	result := &Client{
 		License:      license,
@@ -63,7 +60,7 @@ func New(license string) *Client {
 func (c *Client) doSend(t time.Time) {
 	request, err := c.generateRequest(t)
 	if err != nil {
-		Logger.Printf("ERROR: encountered error(s) creating request data: %v", err)
+		log(LogError, "ERROR: encountered error(s) creating request data: %v", err)
 	}
 	c.lastPollTime = t
 
@@ -88,7 +85,7 @@ func (c *Client) doSend(t time.Time) {
 	case http.StatusServiceUnavailable, http.StatusGatewayTimeout:
 		logResponseError(responseCode)
 	case http.StatusTeapot:
-		Logger.Printf("Server is a teapot!")
+		log(LogError, "Server is a teapot!")
 	}
 }
 
@@ -98,10 +95,10 @@ func (c *Client) clearState() {
 	}
 }
 
+// Run starts the NewRelic client asynchronously. Do not alter the configuration
+// of plugins after starting the client, as this creates race conditions.
 func (c *Client) Run() {
-	if Verbose {
-		Logger.Printf("Starting NewRelic plugin client...")
-	}
+	log(LogInfo, "Starting NewRelic plugin client...")
 	go c.run()
 }
 
@@ -115,23 +112,21 @@ func (c *Client) run() {
 func doPost(request model.Request, url, license string, client *http.Client) int {
 	var jsonBytes []byte
 	var err error
-	if Verbose {
+	if LogLevel <= LogDebug {
 		jsonBytes, err = json.MarshalIndent(request, "", "   ")
 	} else {
 		jsonBytes, err = json.Marshal(request)
 	}
 	if err != nil {
-		Logger.Printf("error encoding json request: %v", err)
+		log(LogError, "error encoding json request: %v", err)
 		return http.StatusBadRequest
 	}
 
-	if Verbose {
-		Logger.Printf("Posting request:\n%s", string(jsonBytes))
-	}
+	log(LogDebug, "Posting request:\n%s", string(jsonBytes))
 
 	httpRequest, err := http.NewRequest("POST", url, strings.NewReader(string(jsonBytes)))
 	if err != nil {
-		Logger.Printf("error creating request: %v", err)
+		log(LogError, "error creating request: %v", err)
 		return http.StatusBadRequest
 	}
 
@@ -141,7 +136,7 @@ func doPost(request model.Request, url, license string, client *http.Client) int
 
 	httpResponse, err := client.Do(httpRequest)
 	if err != nil {
-		Logger.Printf("error posting request: %v", err)
+		log(LogError, "error posting request: %v", err)
 		return http.StatusServiceUnavailable
 	}
 	defer httpResponse.Body.Close()
@@ -149,7 +144,7 @@ func doPost(request model.Request, url, license string, client *http.Client) int
 }
 
 func logResponseError(responseCode int) {
-	Logger.Printf("ERROR: newrelic encountered %d response", responseCode)
+	log(LogError, "ERROR: newrelic encountered %d response", responseCode)
 }
 
 func (c *Client) generateRequest(t time.Time) (request model.Request, err CompositeError) {
