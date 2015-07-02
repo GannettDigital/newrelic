@@ -70,7 +70,7 @@ func Test_generateRequest_agentAndDurationMath(t *testing.T) {
 	assert.Equal(t, "10.0.0.1", r.Agent.Host)
 	assert.Equal(t, "0.0.1", r.Agent.Version)
 	assert.Equal(t, 123, r.Agent.PID)
-	assert.Equal(t, pollInterval.Seconds(), r.Plugins[0].DurationSec)
+	assert.Equal(t, int(pollInterval.Seconds()), r.Plugins[0].DurationSec)
 
 	// set up to test custom duration
 	c.Plugins[0].clearState()
