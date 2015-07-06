@@ -27,7 +27,8 @@ var Logger = l.New(os.Stderr, "newrelic", l.LstdFlags)
 // LogLevel can be set globally to tune logging levels
 var LogLevel = LogError
 
-func log(level LoggingLevel, format string, a ...interface{}) {
+// Log a message through the newrelic package
+func Log(level LoggingLevel, format string, a ...interface{}) {
 	if level <= LogLevel {
 		Logger.Printf(format, a...)
 	}

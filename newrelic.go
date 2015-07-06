@@ -62,7 +62,7 @@ func New(license string) *Client {
 func (c *Client) doSend(t time.Time) {
 	request, err := c.generateRequest(t)
 	if err != nil {
-		log(LogError, "ERROR: encountered error(s) creating request data: %v", err)
+		Log(LogError, "ERROR: encountered error(s) creating request data: %v", err)
 	}
 	c.lastPollTime = t
 
@@ -87,7 +87,7 @@ func (c *Client) doSend(t time.Time) {
 	case http.StatusServiceUnavailable, http.StatusGatewayTimeout:
 		logResponseError(responseCode)
 	case http.StatusTeapot:
-		log(LogError, "Server is a teapot!")
+		Log(LogError, "Server is a teapot!")
 	}
 }
 
@@ -100,7 +100,7 @@ func (c *Client) clearState() {
 // Run starts the NewRelic client asynchronously. Do not alter the configuration
 // of plugins after starting the client, as this creates race conditions.
 func (c *Client) Run() {
-	log(LogInfo, "Starting NewRelic plugin client...")
+	Log(LogInfo, "Starting NewRelic plugin client...")
 	go c.run()
 }
 
@@ -120,15 +120,15 @@ func doPost(request model.Request, url, license string, client *http.Client) int
 		jsonBytes, err = json.Marshal(request)
 	}
 	if err != nil {
-		log(LogError, "error encoding json request: %v", err)
+		Log(LogError, "error encoding json request: %v", err)
 		return http.StatusBadRequest
 	}
 
-	log(LogDebug, "Posting request:\n%s", string(jsonBytes))
+	Log(LogDebug, "Posting request:\n%s", string(jsonBytes))
 
 	httpRequest, err := http.NewRequest("POST", url, strings.NewReader(string(jsonBytes)))
 	if err != nil {
-		log(LogError, "error creating request: %v", err)
+		Log(LogError, "error creating request: %v", err)
 		return http.StatusBadRequest
 	}
 
@@ -138,7 +138,7 @@ func doPost(request model.Request, url, license string, client *http.Client) int
 
 	httpResponse, err := client.Do(httpRequest)
 	if err != nil {
-		log(LogError, "error posting request: %v", err)
+		Log(LogError, "error posting request: %v", err)
 		return http.StatusServiceUnavailable
 	}
 	defer httpResponse.Body.Close()
@@ -146,7 +146,7 @@ func doPost(request model.Request, url, license string, client *http.Client) int
 }
 
 func logResponseError(responseCode int) {
-	log(LogError, "ERROR: newrelic encountered %d response", responseCode)
+	Log(LogError, "ERROR: newrelic encountered %d response", responseCode)
 }
 
 func (c *Client) generateRequest(t time.Time) (request model.Request, err CompositeError) {
