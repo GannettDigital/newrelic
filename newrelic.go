@@ -2,6 +2,7 @@ package newrelic
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -19,6 +20,19 @@ const (
 	agentVersion = "0.0.1"
 	apiEndpoint  = "https://platform-api.newrelic.com/platform/v1/metrics"
 )
+
+var netTransport = &http.Transport{
+	Dial: (&net.Dialer{
+		Timeout:   5 * time.Second,
+		KeepAlive: 5 * time.Second,
+	}).Dial,
+	TLSHandshakeTimeout: 5 * time.Second,
+}
+
+var netClient = &http.Client{
+	Timeout:   time.Second * 5,
+	Transport: netTransport,
+}
 
 // Client encapsulates a NewRelic plugin client and all the plugins it reports
 type Client struct {
@@ -45,7 +59,7 @@ func New(license string) *Client {
 	result := &Client{
 		License:      license,
 		PollInterval: DefaultPollInterval,
-		HTTPClient:   &http.Client{},
+		HTTPClient:   netClient,
 		url:          apiEndpoint,
 	}
 
