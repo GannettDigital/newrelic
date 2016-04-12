@@ -29,7 +29,7 @@ var LogLevel = LogError
 
 // Log a message through the newrelic package
 func Log(level LoggingLevel, format string, a ...interface{}) {
-	if level <= LogLevel {
+	if level >= LogLevel {
 		Logger.Printf(format, a...)
 	}
 }
